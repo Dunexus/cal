@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width">
+	<title>Event generator</title>
+
+	<style>
+		body {
+			font-family: system-ui;
+		}
+
+		form {
+			display: grid;
+			grid-template-columns: max-content 1fr;
+			gap: 0.5rem;
+		}
+
+		label {
+			text-align: right;
+		}
+
+		pre {
+			border: 1px solid black;
+			border-radius: 0.5rem;
+			padding: 0.5rem;
+		}
+	</style>
+</head>
+<body>
+	<form id="form">
+		<label for="type">Type :</label>
+		<select id="type">
+			<option value="movie">🍿 Movie</option>
+			<option value="show">📺 Show</option>
+			<option value="game">🎮 Game</option>
+		</select>
+
+		<label for="name">Name :</label>
+		<input type="text" id="name" required>
+
+		<label for="url">URL :</label>
+		<input type="text" id="url" required>
+
+		<label for="date">Date :</label>
+		<input type="date" id="date" required>
+
+		<div></div>
+		<button type="submit">Generate</button>
+	</form>
+	<pre><code id="output"></code></pre>
+
+	<script>
+const form = document.querySelector("#form");
+form.addEventListener('submit', e => {
+	e.preventDefault();
+	generate();
+});
+
+const typeInput = document.querySelector("#type");
+const nameInput = document.querySelector("#name");
+const urlInput = document.querySelector("#url");
+const dateInput = document.querySelector("#date");
+
+const output = document.querySelector("#output");
+
+const typeEmojiEnum = {
+	"movie": '🍿',
+	"show": '📺',
+	"game": '🎮',
+};
+
+function generate() {
+	const typeEmoji = typeEmojiEnum[typeInput.value];
+	const icsDate = dateIcsFormat(dateInput.valueAsDate);
+	const summary = `${typeEmoji} ${nameInput.value}`;
+	const descr = urlInput.value;
+	
+	const uuid = `${crypto.randomUUID()}@dunexus`;
+	
+	const icsEvent = icsEventFormat(icsDate, summary, descr, uuid);
+	output.innerText = icsEvent;
+}
+
+function dateIcsFormat(date) {
+	const year = `${date.getFullYear()}`;
+	const month = `${date.getMonth() + 1}`.padStart(2, '0');
+	const day = `${date.getDate()}`.padStart(2, '0');
+	return `${year}${month}${day}`;
+}
+
+function icsEventFormat(date, summary, descr, uuid) {
+	return `BEGIN:VEVENT
+DTSTART;VALUE=DATE:${date}
+DTSTAMP:20210914T112250Z
+UID:${uuid}
+SUMMARY:${summary}
+DESCRIPTION:${descr}
+BEGIN:VALARM
+TRIGGER:-PT6H
+ACTION:DISPLAY
+END:VALARM
+END:VEVENT`;
+}
+	</script>
+</body>
+</html>

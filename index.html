@@ -25,15 +25,19 @@
 			border-radius: 0.5rem;
 			padding: 0.5rem;
 		}
+
+		pre:has(output:empty) {
+			display: none;
+		}
 	</style>
 </head>
 <body>
 	<form id="form">
 		<label for="type">Type :</label>
 		<select id="type">
-			<option value="movie">🍿 Movie</option>
-			<option value="show">📺 Show</option>
-			<option value="game">🎮 Game</option>
+			<option value="🍿">🍿 Movie</option>
+			<option value="📺">📺 Show</option>
+			<option value="🎮">🎮 Game</option>
 		</select>
 
 		<label for="name">Name :</label>
@@ -47,39 +51,31 @@
 
 		<div></div>
 		<button type="submit">Generate</button>
+		
+		<div></div>
+		<pre><output name="output"></output></pre>
 	</form>
-	<pre><code id="output"></code></pre>
 
 	<script>
 const form = document.querySelector("#form");
 form.addEventListener('submit', e => {
 	e.preventDefault();
-	generate();
+	const formElements = e.target.elements;
+	formElements.namedItem("output").value = generate(
+		formElements.namedItem("type").value,
+		formElements.namedItem("name").value,
+		formElements.namedItem("url").value,
+		formElements.namedItem("date").valueAsDate,
+	);
 });
 
-const typeInput = document.querySelector("#type");
-const nameInput = document.querySelector("#name");
-const urlInput = document.querySelector("#url");
-const dateInput = document.querySelector("#date");
-
-const output = document.querySelector("#output");
-
-const typeEmojiEnum = {
-	"movie": '🍿',
-	"show": '📺',
-	"game": '🎮',
-};
-
-function generate() {
-	const typeEmoji = typeEmojiEnum[typeInput.value];
-	const icsDate = dateIcsFormat(dateInput.valueAsDate);
-	const summary = `${typeEmoji} ${nameInput.value}`;
-	const descr = urlInput.value;
-	
+function generate(type, name, url, date) {
+	const icsDate = dateIcsFormat(date);
+	const summary = `${type} ${name}`;
+	const descr = url;
 	const uuid = `${crypto.randomUUID()}@dunexus`;
 	
-	const icsEvent = icsEventFormat(icsDate, summary, descr, uuid);
-	output.innerText = icsEvent;
+	return icsEventFormat(icsDate, summary, descr, uuid);
 }
 
 function dateIcsFormat(date) {
@@ -101,6 +97,38 @@ TRIGGER:-PT6H
 ACTION:DISPLAY
 END:VALARM
 END:VEVENT`;
+}
+
+const nameInput = document.querySelector("#name");
+nameInput.addEventListener('input', e => {
+	console.log('input')
+	debounce(autocompleteAllocine, 500)(e.target.value);
+});
+
+function debounce(func, delay) {
+	let timerId;
+	return (...args) => {
+		clearTimeout(timerId);
+		timerId = setTimeout(() => {
+			func.apply(this, args);
+		}, delay);
+	};
+}
+
+async function autocompleteAllocine(keyword){
+	const response = await fetch(`https://www.allocine.fr/_/autocomplete/${keyword}`, {mode: 'cors'});
+	if (!response.ok) {
+		throw new Error(response.status);
+	}
+	const json = await response.json();
+	const data = json.results
+		.filter(res => res.entity_type === "movie")
+		.map(res => ({
+			movieAllocineId: res.entity_id,
+			name: res.label,
+			releaseDate: res.last_release
+		}));
+	console.log(data);
 }
 	</script>
 </body>
